@@ -25,7 +25,8 @@ Executable hmond
   Main-is:           Main.hs
   Hs-Source-Dirs:    src
   Build-depends:     base >= 4 && <5
-                    ,blaze-html >= 0.4.1.1 && <  0.4.2
+                    ,bytestring >= 0.9 && < 1.0
+                    ,xmlgen >= 0.4.0.1 && < 0.5
                     ,network >= 2.2 && < 2.4
                     ,old-locale >= 1.0 && < 1.1
                     ,time >= 1.2 && < 1.3
