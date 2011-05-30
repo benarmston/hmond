@@ -12,6 +12,9 @@ import qualified Data.ByteString as BS
 
 import Text.XML.Generator
 
+import Hmond.Types
+import Hmond.Hosts
+
 start :: IO ()
 start = withSocketsDo $ do
     hSetBuffering stdout LineBuffering
@@ -26,12 +29,12 @@ start = withSocketsDo $ do
 handleClient :: Handle -> IO ()
 handleClient handle = do
     now <- getCurrentTime
-    BS.hPutStrLn handle $ sampleText now
+    BS.hPutStrLn handle $ sampleText now hosts
     hClose handle
 
 
-sampleText :: (FormatTime t, XmlOutput x) => t -> x
-sampleText now = xrender $ doc defaultDocInfo $
+sampleText :: (FormatTime t, XmlOutput x) => t -> [Host] -> x
+sampleText now hosts = xrender $ doc defaultDocInfo $
     xelem "GANGLIA_XML" $ genAttrList [ ("source", "hmond")
                                       , ("version", "2.5.7")
                                       ] <#>
@@ -41,19 +44,16 @@ sampleText now = xrender $ doc defaultDocInfo $
                                        , ("url", "unknown")
                                        , ("name", "unspecified")
                                        ] <#>
-            (xelems $ map (\(name, ip) -> xelem "HOST" $ genAttrList [ ("ip", ip)
-                                                                     , ("name", name)
-                                                                     , ("reported", localtime now)
-                                                                     , ("tn", "50")
-                                                                     , ("tmax", "60")
-                                                                     , ("dmax", "600")
-                                                                     ] <#>
+            (xelems $ map (\host -> xelem "HOST" $ genAttrList [ ("ip", hostIP host)
+                                                               , ("name", hostname host)
+                                                               , ("reported", localtime now)
+                                                               , ("tn", "50")
+                                                               , ("tmax", "60")
+                                                               , ("dmax", "600")
+                                                               ] <#>
                 xtext "It works") hosts))
 
   where localtime = formatTime defaultTimeLocale "%s"
-        hosts = [ ("comp00.vm.concurrent-thinking.com", "192.168.1.1")
-                , ("comp01.vm.concurrent-thinking.com", "192.168.1.2")
-                ]
 
 
 genAttrList :: [(String, String)] -> Xml Attr
