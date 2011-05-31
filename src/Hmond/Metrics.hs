@@ -21,9 +21,11 @@ runMetrics (Host n ip ms) = (vals, Host n ip ms')
 
 
 runMetric :: Metric -> (Metric, Metric)
-runMetric m@(Metric _ _ (ValueGenerator g)) = let g' = execGenerator g in
-                                                  (m, m {metricValueGen = ValueGenerator g'})
+runMetric m = case metricValueGen m of
+                   (ValueGenerator g) ->
+                       (m, m {metricValueGen = ValueGenerator $ execGenerator g})
 
 
 metricValue :: Metric -> Int
-metricValue (Metric _ _ (ValueGenerator g)) = evalGenerator g
+metricValue m = case metricValueGen m of
+                     (ValueGenerator g) -> evalGenerator g
