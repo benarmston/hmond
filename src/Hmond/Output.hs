@@ -8,7 +8,6 @@ import System.Locale
 import Text.XML.Generator
 
 import Hmond.Types
-import Hmond.Hosts
 import Hmond.Metrics
 
 generateXML :: (FormatTime t, XmlOutput x) => t -> [Host] -> x
