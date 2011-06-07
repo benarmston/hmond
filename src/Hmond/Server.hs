@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Hmond.Server (start) where
 
 import           Control.Concurrent
@@ -8,6 +10,7 @@ import           System.IO
 
 import qualified Data.ByteString as BS
 
+import Hmond.Types
 import Hmond.Hosts
 import Hmond.Output
 
@@ -15,15 +18,22 @@ start :: IO ()
 start = withSocketsDo $ do
     hSetBuffering stdout LineBuffering
     listenSock <- listenOn $ PortNumber 8649
+    envar <- newMVar Env { envHosts = hosts }
     forever $ do
         (handle, host, _port) <- accept listenSock
         hSetBuffering handle LineBuffering
-        forkIO $ handleClient handle
+        forkIO $ handleClient handle envar >> updateMetricValues envar
         return ()
 
 
-handleClient :: Handle -> IO ()
-handleClient handle = do
+handleClient :: Handle -> MVar Env -> IO ()
+handleClient handle envar = do
     now <- getCurrentTime
-    BS.hPutStrLn handle $ generateXML now hosts
+    hs <- fmap envHosts $ readMVar envar
+    BS.hPutStrLn handle $ generateXML now hs
     hClose handle
+
+
+updateMetricValues ::  MVar Env -> IO ()
+updateMetricValues envar = modifyMVar_ envar $ \env@Env{..} ->
+    return env {envHosts = runHosts envHosts}

@@ -5,6 +5,7 @@ module Hmond.Types ( Host (..)
                    , Metric (..)
                    , ValueGenerator  (..)
                    , ValueGenerator_ (..)
+                   , Env (..)
                    ) where
 
 
@@ -28,3 +29,8 @@ instance Show ValueGenerator where
 
 class ValueGenerator_ g where
     runGenerator :: g -> (Int, g)
+
+
+data Env = Env {
+    envHosts :: [Host]
+    }
