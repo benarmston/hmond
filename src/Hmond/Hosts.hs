@@ -14,4 +14,4 @@ hosts = [ Host "comp00.vm.concurrent-thinking.com" "192.168.1.1" metrics
 
 
 runHosts :: [Host] -> [Host]
-runHosts hs = map (snd . runMetrics) hs
+runHosts = map runMetrics

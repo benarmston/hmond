@@ -17,6 +17,7 @@ data Host = Host { hostname    :: String
 
 data Metric = Metric { metricName     :: String
                      , metricType     :: String
+                     , metricValue    :: Int
                      , metricValueGen :: ValueGenerator
                      } deriving Show
 
