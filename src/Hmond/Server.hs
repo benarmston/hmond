@@ -14,11 +14,10 @@ import Hmond.Types
 import Hmond.Hosts
 import Hmond.Output
 
-start :: IO ()
-start = withSocketsDo $ do
+start :: MVar Env -> IO ()
+start envar = withSocketsDo $ do
     hSetBuffering stdout LineBuffering
     listenSock <- listenOn $ PortNumber 8649
-    envar <- newMVar Env { envHosts = hosts }
     forever $ do
         (handle, host, _port) <- accept listenSock
         hSetBuffering handle LineBuffering
