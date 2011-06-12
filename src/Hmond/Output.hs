@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Hmond.Output ( generateXML
                     , ) where
 
@@ -24,21 +26,21 @@ generateXML now hosts = xrender $ doc defaultDocInfo $
 
 
 hostXml :: FormatTime t => t -> Host -> Xml Elem
-hostXml now host = xelem "HOST" $ genAttrList [ ("IP", hostIP host)
-                                              , ("NAME", hostname host)
-                                              , ("REPORTED", localtime now)
-                                              , ("TN", "50")
-                                              , ("TMAX", "60")
-                                              , ("DMAX", "600")
-                                              ] <#>
-                        (xelems $ map metricXml (hostMetrics host))
+hostXml now Host{..} = xelem "HOST" $ genAttrList [ ("IP", hostIP)
+                                                  , ("NAME", hostname)
+                                                  , ("REPORTED", localtime now)
+                                                  , ("TN", "50")
+                                                  , ("TMAX", "60")
+                                                  , ("DMAX", "600")
+                                                  ] <#>
+                        (xelems $ map metricXml (hostMetrics))
 
 
 metricXml :: Metric -> Xml Elem
-metricXml metric = xelem "METRIC" $ genAttrList [ ("NAME", metricName metric)
-                                                , ("TYPE", metricType metric)
-                                                , ("VAL" , show . metricValue $ metric)
-                                                ]
+metricXml Metric{..} = xelem "METRIC" $ genAttrList [ ("NAME", metricName)
+                                                    , ("TYPE", metricType)
+                                                    , ("VAL" , show metricValue)
+                                                    ]
 
 
 localtime :: (FormatTime t) => t -> String
