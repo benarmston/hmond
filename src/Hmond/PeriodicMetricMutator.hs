@@ -3,16 +3,13 @@
 module Hmond.PeriodicMetricMutator (start) where
 
 import Control.Concurrent
-import Control.Monad
+import Control.Concurrent.Extras
 
 import Hmond.Types
 import Hmond.Hosts
 
 start :: MVar Env -> IO ()
-start envar = do
-    forever $ do
-        updateMetricValues envar
-        threadDelay $ 2 * 1000 * 1000
+start envar = withPeriodicity 2 (updateMetricValues envar)
 
 
 updateMetricValues ::  MVar Env -> IO ()
