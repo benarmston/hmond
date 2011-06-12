@@ -1,6 +1,7 @@
 module Hmond.Server (start) where
 
 import           Control.Concurrent
+import           Control.Exception (finally)
 import           Control.Monad
 import           Data.Time.Clock (getCurrentTime)
 import           Network
@@ -13,18 +14,15 @@ import Hmond.Output
 
 start :: MVar Env -> IO ()
 start envar = withSocketsDo $ do
-    hSetBuffering stdout LineBuffering
     listenSock <- listenOn $ PortNumber 8649
     forever $ do
-        (handle, host, _port) <- accept listenSock
-        hSetBuffering handle LineBuffering
-        forkIO $ handleClient handle envar
+        (handle, _, _) <- accept listenSock
+        forkIO $ finally (spewXML handle envar) (hClose handle)
         return ()
 
 
-handleClient :: Handle -> MVar Env -> IO ()
-handleClient handle envar = do
+spewXML :: Handle -> MVar Env -> IO ()
+spewXML handle envar = do
     now <- getCurrentTime
     hosts <- fmap envHosts $ readMVar envar
     BS.hPutStrLn handle $ generateXML now hosts
-    hClose handle
