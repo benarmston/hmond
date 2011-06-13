@@ -6,8 +6,11 @@ module Hmond.Types ( Host (..)
                    , ValueGenerator  (..)
                    , ValueGenerator_ (..)
                    , Env (..)
+                   , Config (..)
                    ) where
 
+import Data.Time.Clock
+import Network
 
 data Host = Host { hostname    :: String
                  , hostIP      :: String
@@ -35,3 +38,8 @@ class ValueGenerator_ g where
 data Env = Env {
     envHosts :: [Host]
     }
+
+
+data Config = Config { cfgPort :: PortNumber
+                     , cfgMetricUpdatePeriod :: NominalDiffTime
+                     } deriving (Show)

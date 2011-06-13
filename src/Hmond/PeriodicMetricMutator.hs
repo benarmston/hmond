@@ -8,8 +8,9 @@ import Control.Concurrent.Extras
 import Hmond.Types
 import Hmond.Hosts
 
-start :: MVar Env -> IO ()
-start envar = withPeriodicity 2 (updateMetricValues envar)
+start :: MVar Env -> Config -> IO ()
+start envar config = withPeriodicity period (updateMetricValues envar)
+  where period = cfgMetricUpdatePeriod config
 
 
 updateMetricValues ::  MVar Env -> IO ()

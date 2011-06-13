@@ -12,9 +12,9 @@ import qualified Data.ByteString as BS
 import Hmond.Types
 import Hmond.Output
 
-start :: MVar Env -> IO ()
-start envar = withSocketsDo $ do
-    listenSock <- listenOn $ PortNumber 8649
+start :: MVar Env -> Config -> IO ()
+start envar config = withSocketsDo $ do
+    listenSock <- listenOn $ PortNumber (cfgPort config)
     forever $ do
         (handle, _, _) <- accept listenSock
         forkIO $ finally (spewXML handle envar) (hClose handle)
