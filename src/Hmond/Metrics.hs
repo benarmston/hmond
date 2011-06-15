@@ -2,15 +2,24 @@ module Hmond.Metrics ( metrics
                      , runMetrics
                      ) where
 
-
 import Hmond.Types
 import Hmond.Generators
+import Hmond.ValueGenerator (evalGenerator)
 
 
 metrics :: [Metric]
-metrics = [ Metric "fixed" "int32" 10 (fixedGenerator 10)
-          , Metric "decrementing" "int32" 10 (decrementingGenerator 10)
+metrics = [ metric "fixed" MtInt32 (fixedGenerator 10)
+          , metric "decrementing" MtInt32 (decrementingGenerator 10)
           ]
+
+metric ::  String -> MetricType -> ValueGenerator -> Metric
+metric name _type vg@(ValueGenerator g) =
+    nullMetric { metricName = name
+               , metricType = _type
+               , metricValue = value
+               , metricValueGen = vg
+               }
+  where value = evalGenerator g
 
 
 runMetrics :: Host -> Host
