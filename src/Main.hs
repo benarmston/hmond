@@ -17,5 +17,11 @@ main = withSocketsDo $ do
     installHandler sigPIPE Ignore Nothing
     config <- cmdArgs_ options >>= getConfig . optionsConf
     envar <- newMVar Env { envHosts = hosts }
+    startupMessage config
     forkIO $ Mutator.start envar config
     Server.start envar config
+
+
+startupMessage :: Config -> IO ()
+startupMessage config = do
+    putStrLn $ "Running on port " ++ show (cfgPort config)
