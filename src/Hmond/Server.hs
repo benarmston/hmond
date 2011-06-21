@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Hmond.Server (start) where
 
 import           Control.Concurrent
@@ -13,16 +15,16 @@ import Hmond.Types
 import Hmond.Output
 
 start :: MVar Env -> Config -> IO ()
-start envar config = withSocketsDo $ do
-    listenSock <- listenOn $ PortNumber (cfgPort config)
+start envar Config{..} = withSocketsDo $ do
+    listenSock <- listenOn $ PortNumber cfgPort
     forever $ do
         (handle, _, _) <- accept listenSock
-        forkIO $ finally (spewXML handle envar) (hClose handle)
+        forkIO $ finally (spewXML handle envar cfgCluster) (hClose handle)
         return ()
 
 
-spewXML :: Handle -> MVar Env -> IO ()
-spewXML handle envar = do
+spewXML :: Handle -> MVar Env -> ClusterInfo -> IO ()
+spewXML handle envar cluster = do
     now <- getCurrentTime
     hosts <- fmap envHosts $ readMVar envar
-    BS.hPutStrLn handle $ generateXML now hosts
+    BS.hPutStrLn handle $ generateXML now cluster hosts

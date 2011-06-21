@@ -12,15 +12,15 @@ import Text.XML.Generator
 
 import Hmond.Types
 
-generateXML :: (FormatTime t, XmlOutput x) => t -> [Host] -> x
-generateXML now hosts = xrender $ doc defaultDocInfo $
+generateXML :: (FormatTime t, XmlOutput x) => t -> ClusterInfo -> [Host] -> x
+generateXML now ClusterInfo{..} hosts = xrender $ doc defaultDocInfo $
     xelem "GANGLIA_XML" $ genAttrList [ ("VERSION", "2.5.7")
                                       , ("SOURCE", "hmond")
                                       ] <#>
-        (xelem "CLUSTER" $ genAttrList [ ("NAME", "unspecified")
-                                       , ("OWNER", "owner")
-                                       , ("LATLONG", "unknown")
-                                       , ("URL", "unknown")
+        (xelem "CLUSTER" $ genAttrList [ ("NAME", clName)
+                                       , ("OWNER", clOwner)
+                                       , ("LATLONG", clLatlong)
+                                       , ("URL", clUrl)
                                        , ("LOCALTIME", localtime now)
                                        ] <#>
             (xelems $ map (hostXml now) hosts ))

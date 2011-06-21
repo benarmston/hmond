@@ -10,6 +10,7 @@ module Hmond.Types ( Host (..)
                    , ValueGenerator_ (..)
                    , Env (..)
                    , Config (..)
+                   , ClusterInfo (..)
                    ) where
 
 import Data.Time.Clock
@@ -89,4 +90,12 @@ data Env = Env {
 
 data Config = Config { cfgPort :: PortNumber
                      , cfgMetricUpdatePeriod :: NominalDiffTime
+                     , cfgCluster :: ClusterInfo
                      } deriving (Show)
+
+
+data ClusterInfo = ClusterInfo { clName :: String
+                               , clOwner :: String
+                               , clLatlong :: String
+                               , clUrl :: String
+                               } deriving (Show)
