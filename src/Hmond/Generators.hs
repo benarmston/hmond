@@ -4,26 +4,11 @@ module Hmond.Generators ( fixedGenerator
 
 import Hmond.Types
 
-data FixedGenerator = FixedGenerator Int
-    deriving Show
-
-
-instance ValueGenerator_ FixedGenerator where
-    runGenerator f@(FixedGenerator i) = (i, f)
-
-
 fixedGenerator :: Int -> ValueGenerator
-fixedGenerator = ValueGenerator . FixedGenerator
-
-
-
-data DecrementingGenerator = DecrementingGenerator Int
-    deriving Show
-
-
-instance ValueGenerator_ DecrementingGenerator where
-    runGenerator (DecrementingGenerator i) = (i, (DecrementingGenerator (i - 1)))
+fixedGenerator i = ValueGenerator fixedVal
+    where fixedVal = (i, fixedGenerator i)
 
 
 decrementingGenerator :: Int -> ValueGenerator
-decrementingGenerator = ValueGenerator . DecrementingGenerator
+decrementingGenerator i = ValueGenerator decrement
+    where decrement = (i, decrementingGenerator (i - 1))

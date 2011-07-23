@@ -13,13 +13,13 @@ metrics = [ metric "fixed" MtInt32 (fixedGenerator 10)
           ]
 
 metric ::  String -> MetricType -> ValueGenerator -> Metric
-metric name _type vg@(ValueGenerator g) =
+metric name _type vg =
     nullMetric { metricName = name
                , metricType = _type
                , metricValue = value
                , metricValueGen = vg
                }
-  where value = evalGenerator g
+  where value = evalGenerator vg
 
 
 runMetrics :: Host -> Host
@@ -28,8 +28,7 @@ runMetrics host = host { hostMetrics = newMetrics}
 
 
 runMetric :: Metric -> Metric
-runMetric m = case metricValueGen m of
-                   (ValueGenerator g) -> newMetric g
+runMetric m = newMetric (metricValueGen m)
     where newMetric g = let (val, gen) = runGenerator g in
                             m { metricValue = val
-                              , metricValueGen = ValueGenerator gen}
+                              , metricValueGen = gen}

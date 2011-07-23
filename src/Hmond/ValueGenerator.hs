@@ -5,9 +5,9 @@ module Hmond.ValueGenerator ( evalGenerator
 import Hmond.Types
 
 
-evalGenerator :: ValueGenerator_ g => g -> Int
+evalGenerator :: ValueGenerator -> Int
 evalGenerator = fst . runGenerator
 
 
-execGenerator :: ValueGenerator_ g => g -> g
+execGenerator :: ValueGenerator -> ValueGenerator
 execGenerator = snd . runGenerator

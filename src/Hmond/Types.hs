@@ -1,4 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 
 module Hmond.Types ( Host (..)
@@ -7,7 +6,6 @@ module Hmond.Types ( Host (..)
                    , MetricSlope (..)
                    , MetricType (..)
                    , ValueGenerator  (..)
-                   , ValueGenerator_ (..)
                    , Env (..)
                    , Config (..)
                    , ClusterInfo (..)
@@ -73,14 +71,11 @@ instance Show MetricSlope where
     show Unspecified = "unspecified"
 
 
-data ValueGenerator = forall g. (ValueGenerator_ g, Show g) => ValueGenerator g
+data ValueGenerator = ValueGenerator { runGenerator :: (Int, ValueGenerator) }
+
 
 instance Show ValueGenerator where
-    show (ValueGenerator g) = show g
-
-
-class ValueGenerator_ g where
-    runGenerator :: g -> (Int, g)
+    show (ValueGenerator _) = "Unknown ValueGenerator"
 
 
 data Env = Env {
