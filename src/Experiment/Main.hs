@@ -7,40 +7,47 @@ import Control.Monad(forM_)
 
 -- | Types
 
-data ValueGenerator a = ValueGenerator { runGenerator :: (a, ValueGenerator a) }
+data MetricValue = MtString String
+                 | MtInt Int
+                 | MtDouble Double
 
-data Metric a = Metric { metricValue    :: a
-                       , metricValueGen :: (ValueGenerator a)
-                       }
+instance Show MetricValue where
+    show (MtString s)    = s
+    show (MtInt i)       = show i
+    show (MtDouble d)    = show d
 
-data Host a = Host { hostMetrics :: [Metric a] }
+data ValueGenerator = ValueGenerator { runGenerator :: (MetricValue, ValueGenerator) }
+
+data Metric = Metric { metricValue    :: MetricValue
+                     , metricValueGen :: ValueGenerator
+                     }
+
+data Host = Host { hostMetrics :: [Metric] }
 
 
+--  makeHost = Host numMetrics ::  Host
+--  makeHost = Host stringMetrics ::  Host
+makeHost = Host mixedMetrics ::  Host
 
--- | Smart constructors
-
---  makeHost = Host numMetrics ::  Host Double
-makeHost = Host stringMetrics ::  Host [Char]
-
-numMetrics ::  [Metric Double]
-numMetrics = [ makeMetric $ fixedGenerator 1
-             , makeMetric $ fixedGenerator 1.5
-             , makeMetric $ decrementingGenerator 10
-             , makeMetric $ decrementingGenerator 10.5
+numMetrics ::  [Metric]
+numMetrics = [ makeMetric $ fixedGenerator $ MtInt 1
+             , makeMetric $ fixedGenerator $ MtDouble 1.5
+             , makeMetric $ decrementingGenerator $ MtInt 10
+             , makeMetric $ decrementingGenerator $ MtDouble 10.5
              ]
 
-stringMetrics ::  [Metric String]
-stringMetrics = [ makeMetric $ fixedGenerator "Bob"
-                , makeMetric $ caseTogglingGenerator "bob"
+stringMetrics ::  [Metric]
+stringMetrics = [ makeMetric $ fixedGenerator $ MtString "Bob"
+                , makeMetric $ caseTogglingGenerator $ MtString "bob"
                 --  This raises a compile time error, due to "10" not
                 --  having an instance of Num.
-                --  , makeMetric $ decrementingGenerator "10"
+                --  , makeMetric $ decrementingGenerator $ MtInt "10"
                 ]
 
 --  Uncommenting this and it doesn't compile.
---  mixedMetrics = numMetrics ++ stringMetrics
+mixedMetrics = numMetrics ++ stringMetrics
 
-makeMetric ::  ValueGenerator a -> Metric a
+makeMetric ::  ValueGenerator -> Metric
 makeMetric vg = Metric { metricValue = value
                        , metricValueGen = vg
                        }
@@ -50,12 +57,12 @@ makeMetric vg = Metric { metricValue = value
 
 -- | Processing functions
 
-runMetrics ::  Host a -> Host a
+runMetrics ::  Host -> Host
 runMetrics host = host { hostMetrics = newMetrics}
     where newMetrics = map runMetric $ hostMetrics host
 
 
-runMetric :: Metric a -> Metric a
+runMetric :: Metric -> Metric
 runMetric m = newMetric (metricValueGen m)
     where newMetric g = let (val, gen) = runGenerator g in
                             m { metricValue = val
@@ -64,21 +71,25 @@ runMetric m = newMetric (metricValueGen m)
 
 -- | Particular value generators
 --
-fixedGenerator :: a -> ValueGenerator a
+fixedGenerator :: MetricValue -> ValueGenerator
 fixedGenerator i = ValueGenerator fixedVal
     where fixedVal = (i, fixedGenerator i)
 
 
-decrementingGenerator :: Num a => a -> ValueGenerator a
-decrementingGenerator i = ValueGenerator decrement
-    where decrement = (i, decrementingGenerator (i - 1))
+-- This doesn't work for MtString. But there is no compile time check.
+decrementingGenerator :: MetricValue -> ValueGenerator
+decrementingGenerator (MtInt i)    = ValueGenerator decrement
+    where decrement = (MtInt i, decrementingGenerator $ MtInt (i - 1))
+decrementingGenerator (MtDouble i) = ValueGenerator decrement
+    where decrement = (MtDouble i, decrementingGenerator $ MtDouble (i - 1))
 
 
-caseTogglingGenerator :: String -> ValueGenerator String
-caseTogglingGenerator s = ValueGenerator (s, caseTogglingGenerator toggled)
-    where toggled = if all isUpper s
-                      then map toLower s
-                      else map toUpper s
+-- This only works for MtString. But there is no compile time check.
+caseTogglingGenerator :: MetricValue -> ValueGenerator
+caseTogglingGenerator (MtString s) = ValueGenerator (MtString s, caseTogglingGenerator toggled)
+    where toggled = MtString $ if all isUpper s
+                                then map toLower s
+                                else map toUpper s
 
 
 -- | Driver program
@@ -88,7 +99,7 @@ main = do
     printHostVals makeHost
 
 
-printHostVals ::  Show a => Host a -> IO b
+printHostVals :: Host -> IO ()
 printHostVals host = do
     forM_ (hostMetrics host) $ \metric ->
         putStr $ show (metricValue metric) ++ " "
