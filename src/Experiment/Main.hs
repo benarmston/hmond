@@ -1,13 +1,68 @@
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module Main where
 
 import Data.Char
+import Control.Monad(forM_)
 
 -- | Types
 
 data ValueGenerator a = ValueGenerator { runGenerator :: (a, ValueGenerator a) }
 
+data Metric a = Metric { metricValue    :: a
+                       , metricValueGen :: (ValueGenerator a)
+                       }
 
--- | particular generators
+data Host a = Host { hostMetrics :: [Metric a] }
+
+
+
+-- | Smart constructors
+
+--  makeHost = Host numMetrics ::  Host Double
+makeHost = Host stringMetrics ::  Host [Char]
+
+numMetrics ::  [Metric Double]
+numMetrics = [ makeMetric $ fixedGenerator 1
+             , makeMetric $ fixedGenerator 1.5
+             , makeMetric $ decrementingGenerator 10
+             , makeMetric $ decrementingGenerator 10.5
+             ]
+
+stringMetrics ::  [Metric String]
+stringMetrics = [ makeMetric $ fixedGenerator "Bob"
+                , makeMetric $ caseTogglingGenerator "bob"
+                --  This raises a compile time error, due to "10" not
+                --  having an instance of Num.
+                --  , makeMetric $ decrementingGenerator "10"
+                ]
+
+--  Uncommenting this and it doesn't compile.
+--  mixedMetrics = numMetrics ++ stringMetrics
+
+makeMetric ::  ValueGenerator a -> Metric a
+makeMetric vg = Metric { metricValue = value
+                       , metricValueGen = vg
+                       }
+  where value = fst . runGenerator $ vg
+
+
+
+-- | Processing functions
+
+runMetrics ::  Host a -> Host a
+runMetrics host = host { hostMetrics = newMetrics}
+    where newMetrics = map runMetric $ hostMetrics host
+
+
+runMetric :: Metric a -> Metric a
+runMetric m = newMetric (metricValueGen m)
+    where newMetric g = let (val, gen) = runGenerator g in
+                            m { metricValue = val
+                              , metricValueGen = gen}
+
+
+-- | Particular value generators
 --
 fixedGenerator :: a -> ValueGenerator a
 fixedGenerator i = ValueGenerator fixedVal
@@ -26,40 +81,16 @@ caseTogglingGenerator s = ValueGenerator (s, caseTogglingGenerator toggled)
                       else map toUpper s
 
 
--- | generator convenience functions
---
-evalGenerator :: ValueGenerator a -> a
-evalGenerator = fst . runGenerator
-
-
-execGenerator :: ValueGenerator a -> ValueGenerator a
-execGenerator = snd . runGenerator
-
-
-
+-- | Driver program
 
 main :: IO ()
 main = do
-    let fgi = fixedGenerator 10
-        dgi = decrementingGenerator 10
-        dgf = decrementingGenerator 10.5
-        fgs = fixedGenerator "Bob"
-        ctg = caseTogglingGenerator "bob"
-    printVals fgi dgi dgf fgs ctg
+    printHostVals makeHost
 
 
-printVals ::  (Show a, Show b, Show c, Show d, Show e) =>
-              ValueGenerator a ->
-              ValueGenerator b ->
-              ValueGenerator c ->
-              ValueGenerator d ->
-              ValueGenerator e -> IO ()
-printVals a b c d e = do
-    putStrLn $ "a: " ++ show av ++ " b: " ++ show bv ++ " c: " ++ show cv ++ " d: " ++ show dv ++ " e: " ++ show ev
-    printVals a' b' c' d' e'
-  where
-    (av, a') = runGenerator a
-    (bv, b') = runGenerator b
-    (cv, c') = runGenerator c
-    (dv, d') = runGenerator d
-    (ev, e') = runGenerator e
+printHostVals ::  Show a => Host a -> IO b
+printHostVals host = do
+    forM_ (hostMetrics host) $ \metric ->
+        putStr $ show (metricValue metric) ++ " "
+    putStrLn ""
+    printHostVals $ runMetrics host
