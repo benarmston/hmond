@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
 module Main where
@@ -7,49 +8,52 @@ import Control.Monad(forM_)
 
 -- | Types
 
-data MetricValue = MtString String
-                 | MtInt Int
-                 | MtDouble Double
+data NumericMetricValue
+data StringMetricValue
 
-instance Show MetricValue where
+data MetricValue a where
+    MtInt    :: Int    -> MetricValue NumericMetricValue
+    MtDouble :: Double -> MetricValue NumericMetricValue
+    MtString :: String -> MetricValue StringMetricValue
+
+instance Show (MetricValue a) where
     show (MtString s)    = s
     show (MtInt i)       = show i
     show (MtDouble d)    = show d
 
-data ValueGenerator = ValueGenerator { runGenerator :: (MetricValue, ValueGenerator) }
+data ValueGenerator a = ValueGenerator { runGenerator :: (MetricValue a, ValueGenerator a) }
 
-data Metric = Metric { metricValue    :: MetricValue
-                     , metricValueGen :: ValueGenerator
-                     }
+data Metric a = Metric { metricValue_    :: MetricValue a
+                       , metricValueGen_ :: ValueGenerator a
+                       }
 
-data Host = Host { hostMetrics :: [Metric] }
+data Host a = Host { hostMetrics :: [Metric a] }
 
+makeHost = Host numMetrics ::  Host NumericMetricValue
+--  makeHost = Host stringMetrics ::  Host StringMetricValue
+--  makeHost = Host mixedMetrics ::  Host ?
 
---  makeHost = Host numMetrics ::  Host
---  makeHost = Host stringMetrics ::  Host
-makeHost = Host mixedMetrics ::  Host
-
-numMetrics ::  [Metric]
+numMetrics ::  [Metric NumericMetricValue]
 numMetrics = [ makeMetric $ fixedGenerator $ MtInt 1
              , makeMetric $ fixedGenerator $ MtDouble 1.5
              , makeMetric $ decrementingGenerator $ MtInt 10
              , makeMetric $ decrementingGenerator $ MtDouble 10.5
              ]
 
-stringMetrics ::  [Metric]
+stringMetrics ::  [Metric StringMetricValue]
 stringMetrics = [ makeMetric $ fixedGenerator $ MtString "Bob"
                 , makeMetric $ caseTogglingGenerator $ MtString "bob"
-                --  This raises a compile time error, due to "10" not
-                --  having an instance of Num.
+                --  These raise a compile time error as desired.
                 --  , makeMetric $ decrementingGenerator $ MtInt "10"
+                --  , makeMetric $ decrementingGenerator $ MtString "10"
                 ]
 
 --  Uncommenting this and it doesn't compile.
-mixedMetrics = numMetrics ++ stringMetrics
+--  mixedMetrics = numMetrics ++ stringMetrics
 
-makeMetric ::  ValueGenerator -> Metric
-makeMetric vg = Metric { metricValue = value
-                       , metricValueGen = vg
+makeMetric ::  ValueGenerator a -> Metric a
+makeMetric vg = Metric { metricValue_ = value
+                       , metricValueGen_ = vg
                        }
   where value = fst . runGenerator $ vg
 
@@ -57,27 +61,28 @@ makeMetric vg = Metric { metricValue = value
 
 -- | Processing functions
 
-runMetrics ::  Host -> Host
+runMetrics ::  Host a -> Host a
 runMetrics host = host { hostMetrics = newMetrics}
     where newMetrics = map runMetric $ hostMetrics host
 
 
-runMetric :: Metric -> Metric
-runMetric m = newMetric (metricValueGen m)
-    where newMetric g = let (val, gen) = runGenerator g in
-                            m { metricValue = val
-                              , metricValueGen = gen}
+runMetric :: Metric a -> Metric a
+runMetric m = newMetric (metricValueGen_ m)
+  where
+    newMetric g = let (val, gen) = runGenerator g in
+                      m { metricValue_ = val
+                        , metricValueGen_ = gen}
 
 
 -- | Particular value generators
 --
-fixedGenerator :: MetricValue -> ValueGenerator
+fixedGenerator :: MetricValue a -> ValueGenerator a
 fixedGenerator i = ValueGenerator fixedVal
     where fixedVal = (i, fixedGenerator i)
 
 
 -- This doesn't work for MtString. But there is no compile time check.
-decrementingGenerator :: MetricValue -> ValueGenerator
+decrementingGenerator :: MetricValue NumericMetricValue -> ValueGenerator NumericMetricValue
 decrementingGenerator (MtInt i)    = ValueGenerator decrement
     where decrement = (MtInt i, decrementingGenerator $ MtInt (i - 1))
 decrementingGenerator (MtDouble i) = ValueGenerator decrement
@@ -85,7 +90,7 @@ decrementingGenerator (MtDouble i) = ValueGenerator decrement
 
 
 -- This only works for MtString. But there is no compile time check.
-caseTogglingGenerator :: MetricValue -> ValueGenerator
+caseTogglingGenerator :: MetricValue StringMetricValue -> ValueGenerator StringMetricValue
 caseTogglingGenerator (MtString s) = ValueGenerator (MtString s, caseTogglingGenerator toggled)
     where toggled = MtString $ if all isUpper s
                                 then map toLower s
@@ -99,9 +104,9 @@ main = do
     printHostVals makeHost
 
 
-printHostVals :: Host -> IO ()
+printHostVals :: Host a -> IO ()
 printHostVals host = do
     forM_ (hostMetrics host) $ \metric ->
-        putStr $ show (metricValue metric) ++ " "
+        putStr $ show (metricValue_ $ metric) ++ " "
     putStrLn ""
     printHostVals $ runMetrics host
