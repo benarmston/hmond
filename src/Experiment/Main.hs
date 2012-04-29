@@ -1,9 +1,5 @@
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ImpredicativeTypes #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
 module Main where
 
@@ -22,47 +18,41 @@ instance Show (MetricValue a) where
     show (MtInt i)       = show i
     show (MtDouble d)    = show d
 
-type AnyMetric = forall a. Metric a
-
-
 data ValueGenerator a = ValueGenerator { runGenerator :: (MetricValue a, ValueGenerator a) }
 
-data Metric a = Metric { metricValue_    :: MetricValue a
-                       , metricValueGen_ :: ValueGenerator a
-                       }
+data MetricRecord a = MkMr { metricValue_ :: MetricValue a }
 
-data Host = Host { hostMetrics :: [AnyMetric] }
+data Metric = forall a. MkM (MetricRecord a) (MetricRecord a -> Metric)
+
+data Host = Host { hostMetrics :: [Metric] }
 
 
-makeHost = Host numMetrics
---  makeHost = Host stringMetrics
---  makeHost = Host mixedMetrics
+makeHost :: Host
+makeHost = Host mixedMetrics
 
-numMetrics ::  [AnyMetric]
-numMetrics = [ makeMetric $ fixedGenerator $ MtInt 1
-             , makeMetric $ fixedGenerator $ MtDouble 1.5
-             , makeMetric $ decrementingGenerator $ MtInt 10
-             , makeMetric $ decrementingGenerator $ MtDouble 10.5
+numMetrics ::  [Metric]
+numMetrics = [ makeMetric fixedGenerator $ MtInt 1
+             , makeMetric fixedGenerator $ MtDouble 1.5
+             , makeMetric decrementingGenerator $ MtInt 10
+             , makeMetric decrementingGenerator $ MtDouble 10.5
              ]
 
-stringMetrics ::  [AnyMetric]
-stringMetrics = [ makeMetric $ fixedGenerator $ MtString "Bob"
-                , makeMetric $ caseTogglingGenerator $ MtString "bob"
-                --  This raises a compile time error, due to "10" not
-                --  having an instance of Num.
-                --  , makeMetric $ decrementingGenerator $ MtInt "10"
-                --  , makeMetric $ decrementingGenerator $ MtString "10"
+stringMetrics ::  [Metric]
+stringMetrics = [ makeMetric fixedGenerator $ MtString "Bob"
+                , makeMetric caseTogglingGenerator $ MtString "bob"
                 ]
 
---  Uncommenting this and it doesn't compile.
---  mixedMetrics :: [MetricValue t]
---  mixedMetrics = numMetrics ++ stringMetrics
+mixedMetrics :: [Metric]
+mixedMetrics = numMetrics ++ stringMetrics
 
-makeMetric ::  ValueGenerator a -> AnyMetric
-makeMetric vg = Metric { metricValue_ = value
-                       , metricValueGen_ = vg
-                       }
-  where value = fst . runGenerator $ vg
+makeMetric :: (MetricValue a -> ValueGenerator a) -> MetricValue a -> Metric
+--  XXX not sure about this type signature or mkGen variable name
+--  XXX Also change the name of foo.
+makeMetric mkGen mv = MkM (MkMr mv) (foo $ mkGen mv)
+    where foo :: ValueGenerator a -> MetricRecord a -> Metric
+          foo gen mr = MkM mr' $ foo gen'
+              where (mv', gen') = runGenerator gen
+                    mr'     = mr { metricValue_ = mv' }
 
 
 
@@ -71,18 +61,12 @@ makeMetric vg = Metric { metricValue_ = value
 runMetrics ::  Host -> Host
 runMetrics host = host { hostMetrics = newMetrics}
     where newMetrics = map runMetric $ hostMetrics host
-
-
-runMetric :: AnyMetric -> AnyMetric
-runMetric m = newMetric (metricValueGen_ m)
-  where
-    newMetric g = let (val, gen) = runGenerator g in
-                      m { metricValue_ = val
-                        , metricValueGen_ = gen}
+          runMetric (MkM m fn) = fn m
 
 
 -- | Particular value generators
 --
+
 fixedGenerator :: MetricValue a -> ValueGenerator a
 fixedGenerator i = ValueGenerator fixedVal
     where fixedVal = (i, fixedGenerator i)
@@ -111,7 +95,7 @@ main = do
 
 printHostVals :: Host -> IO ()
 printHostVals host = do
-    forM_ (hostMetrics host) $ \metric ->
-        putStr $ show (metricValue_ $ metric) ++ " "
+    forM_ (hostMetrics host) $ \(MkM mr _) ->
+        putStr $ show (metricValue_ $ mr) ++ " "
     putStrLn ""
     printHostVals $ runMetrics host
