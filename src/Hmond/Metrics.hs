@@ -4,31 +4,18 @@ module Hmond.Metrics ( metrics
 
 import Hmond.Types
 import Hmond.Generators
-import Hmond.ValueGenerator (evalGenerator)
 
 
 metrics :: [Metric]
-metrics = [ metric "fixed" MtInt32 (fixedGenerator 10)
-          , metric "decrementing" MtInt32 (decrementingGenerator 10)
+metrics = [ makeMetric fixedGenerator (MtInt32 1) "fixed int"
+          , makeMetric fixedGenerator (MtDouble 1.5) "fixed double"
+          , makeMetric decrementingGenerator (MtInt32 10) "decr int"
+          , makeMetric decrementingGenerator (MtDouble 10.5) "decr double"
+          , makeMetric fixedGenerator (MtString "Bob") "fixed string"
           ]
 
-metric ::  String -> MetricType -> ValueGenerator -> Metric
-metric name _type vg =
-    nullMetric { metricName = name
-               , metricType = _type
-               , metricValue = value
-               , metricValueGen = vg
-               }
-  where value = evalGenerator vg
 
-
-runMetrics :: Host -> Host
+runMetrics ::  Host -> Host
 runMetrics host = host { hostMetrics = newMetrics}
     where newMetrics = map runMetric $ hostMetrics host
-
-
-runMetric :: Metric -> Metric
-runMetric m = newMetric (metricValueGen m)
-    where newMetric g = let (val, gen) = runGenerator g in
-                            m { metricValue = val
-                              , metricValueGen = gen}
+          runMetric (MkM m fn) = fn m

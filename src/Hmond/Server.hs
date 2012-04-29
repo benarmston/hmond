@@ -9,7 +9,7 @@ import           Data.Time.Clock (getCurrentTime)
 import           Network
 import           System.IO
 
-import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS
 
 import Hmond.Types
 import Hmond.Output

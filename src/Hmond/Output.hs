@@ -36,20 +36,20 @@ hostXml now Host{..} = xelem "HOST" $ genAttrList [ ("NAME", hostname)
                                                   , ("DMAX", "600")
                                                   -- , ("GMOND_STARTED", localtime hmondStartTime)
                                                   ] <#>
-                        (xelems $ map metricXml (hostMetrics))
+                        (xelems $ map (\(MkM mr _) -> metricXml mr) (hostMetrics))
 
 
-metricXml :: Metric -> Xml Elem
-metricXml Metric{..} = xelem "METRIC" $ genAttrList [ ("NAME", metricName)
-                                                    , ("VAL" , show metricValue)
-                                                    , ("TYPE", show metricType)
-                                                    , ("UNITS", fromMaybe "" metricUnits)
-                                                    , ("TN", show metricTN)
-                                                    , ("TMAX", show metricTMAX)
-                                                    , ("DMAX", show metricDMAX)
-                                                    , ("SLOPE", show metricSlope)
-                                                    , ("SOURCE", "gmond")
-                                                    ]
+metricXml :: MetricRecord a -> Xml Elem
+metricXml mr@MkMr{..} = xelem "METRIC" $ genAttrList [ ("NAME", mrName)
+                                                     , ("VAL" , show mrValue)
+                                                     , ("TYPE", mrType mr)
+                                                     , ("UNITS", fromMaybe "" mrUnits)
+                                                     , ("TN", show mrTN)
+                                                     , ("TMAX", show mrTMAX)
+                                                     , ("DMAX", show mrDMAX)
+                                                     , ("SLOPE", show mrSlope)
+                                                     , ("SOURCE", "gmond")
+                                                     ]
 
 
 localtime :: (FormatTime t) => t -> String

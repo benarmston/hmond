@@ -1,14 +1,39 @@
+{-# LANGUAGE GADTs #-}
+
 module Hmond.Generators ( fixedGenerator
                         , decrementingGenerator
                         ) where
 
 import Hmond.Types
 
-fixedGenerator :: Int -> ValueGenerator
+fixedGenerator :: MetricType a -> ValueGenerator a
 fixedGenerator i = ValueGenerator fixedVal
     where fixedVal = (i, fixedGenerator i)
 
 
-decrementingGenerator :: Int -> ValueGenerator
-decrementingGenerator i = ValueGenerator decrement
-    where decrement = (i, decrementingGenerator (i - 1))
+decrementingGenerator :: Num a => MetricType a -> ValueGenerator a
+decrementingGenerator (MtInt8 i) = ValueGenerator decrement
+    where decrement = (MtInt8 i, decrementingGenerator $ MtInt8 (i - 1))
+
+decrementingGenerator (MtInt16 i) = ValueGenerator decrement
+    where decrement = (MtInt16 i, decrementingGenerator $ MtInt16 (i - 1))
+
+decrementingGenerator (MtInt32 i) = ValueGenerator decrement
+    where decrement = (MtInt32 i, decrementingGenerator $ MtInt32 (i - 1))
+
+decrementingGenerator (MtUInt8 i) = ValueGenerator decrement
+    where decrement = (MtUInt8 i, decrementingGenerator $ MtUInt8 (i - 1))
+
+decrementingGenerator (MtUInt16 i) = ValueGenerator decrement
+    where decrement = (MtUInt16 i, decrementingGenerator $ MtUInt16 (i - 1))
+
+decrementingGenerator (MtUInt32 i) = ValueGenerator decrement
+    where decrement = (MtUInt32 i, decrementingGenerator $ MtUInt32 (i - 1))
+
+decrementingGenerator (MtFloat i) = ValueGenerator decrement
+    where decrement = (MtFloat i, decrementingGenerator $ MtFloat (i - 1))
+
+decrementingGenerator (MtDouble i) = ValueGenerator decrement
+    where decrement = (MtDouble i, decrementingGenerator $ MtDouble (i - 1))
+
+decrementingGenerator _ = error "Type system prevents us from getting here"
