@@ -1,8 +1,8 @@
 {-# LANGUAGE GADTs #-}
 
-module Hmond.Generators ( fixedGenerator
-                        , decrementingGenerator
-                        ) where
+module Hmond.Generators where
+
+import Data.Char (isUpper, toLower, toUpper)
 
 import Hmond.Types
 
@@ -37,3 +37,10 @@ decrementingGenerator (MtDouble i) = ValueGenerator decrement
     where decrement = (MtDouble i, decrementingGenerator $ MtDouble (i - 1))
 
 decrementingGenerator _ = error "Type system prevents us from getting here"
+
+
+caseTogglingGenerator :: MetricType String -> ValueGenerator String
+caseTogglingGenerator (MtString s) = ValueGenerator (MtString s, caseTogglingGenerator toggled)
+    where toggled = MtString $ if all isUpper s
+                                then map toLower s
+                                else map toUpper s

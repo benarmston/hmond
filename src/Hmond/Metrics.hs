@@ -12,6 +12,7 @@ metrics = [ makeMetric fixedGenerator (MtInt32 1) "fixed int"
           , makeMetric decrementingGenerator (MtInt32 10) "decr int"
           , makeMetric decrementingGenerator (MtDouble 10.5) "decr double"
           , makeMetric fixedGenerator (MtString "Bob") "fixed string"
+          , makeMetric caseTogglingGenerator (MtString "bob") "case toggling string"
           ]
 
 
