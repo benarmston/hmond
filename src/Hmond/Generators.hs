@@ -3,6 +3,8 @@
 module Hmond.Generators where
 
 import Data.Char (isUpper, toLower, toUpper)
+import Data.Int (Int32)
+import System.Random (StdGen, next)
 
 import Hmond.Types
 
@@ -44,3 +46,9 @@ caseTogglingGenerator (MtString s) = ValueGenerator (MtString s, caseTogglingGen
     where toggled = MtString $ if all isUpper s
                                 then map toLower s
                                 else map toUpper s
+
+
+randGenerator :: StdGen -> MetricType Int32 -> ValueGenerator Int32
+randGenerator gen mt = ValueGenerator random
+    where random = (mt, randGenerator gen' $ MtInt32 (fromIntegral i'))
+          (i', gen') = next gen

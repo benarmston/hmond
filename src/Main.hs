@@ -4,6 +4,7 @@ import Control.Concurrent
 import Network
 import System.Console.CmdArgs
 import System.Posix
+import System.Random (newStdGen)
 
 import Hmond.Config (getConfig)
 import Hmond.Options (options, optionsConf)
@@ -16,7 +17,8 @@ main :: IO ()
 main = withSocketsDo $ do
     installHandler sigPIPE Ignore Nothing
     config <- cmdArgs_ options >>= getConfig . optionsConf
-    envar <- newMVar Env { envHosts = hosts }
+    gen <- newStdGen
+    envar <- newMVar Env { envHosts = hosts gen }
     startupMessage config
     forkIO $ Mutator.start envar config
     Server.start envar config
